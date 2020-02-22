@@ -1,48 +1,16 @@
 /*
  ============================================================================
  Name        : CProgramming_Test_Sunbeam.c
- Author      : 
+ Author      : Shivam Palaskar
  Version     :
  Copyright   : Your copyright notice
- Description : Hello World in C, Ansi-style
+ Description : Time sheet Application
  ============================================================================
  */
 
 #include<stdio.h>
 #include<stdlib.h>
 #include<string.h>
-
-
-void displayMyDetails();
-void displayMainMenu();
-void registerStaff();
-void printfStaffDetails();
-void printModuleDetails();
-void getStaffDetails();
-void getModuleDetails();
-void staffMenu();
-void adminMenu();
-int staffMenuList();
-int adminMenuList();
-void displayCourseList();
-void addCourse();
-void addModule();
-void displayStaffDetails();
-void displayModuleDetails();
-void findModuleByNameAndCourse();
-void editModuleByID();
-void deleteModuleById();
-void modulesPerCourse();
-void modulesPerCategory();
-void workEntry();
-void getWorkEntryData();
-void getWorkEntryDetails();
-void listPendingEntries();
-void printWorkEntryDetails();
-void approveEntry();
-void listApprovedEntries();
-void listPendingEntriesWithModuleName();
-
 
 struct Staff {
 	int id;
@@ -71,16 +39,11 @@ struct Entry{
 	struct Time start_time;
 }entry;
 
-int main (void){
-	displayMyDetails();
-	displayMainMenu();
-	return 0;
-}
 
 void displayMainMenu(){
 	int choice;
 	while (1) {
-		printf("MAIN MENU\n");
+		printf("\nMAIN MENU\n");
 		printf("0. Exit\n");
 		printf("1. Register Staff\n");
 		printf("2. Staff\n");
@@ -108,7 +71,7 @@ void displayMainMenu(){
 void adminMenu() {
 	int choice;
 	while(1){
-		printf("ADMIN MENU\n");
+		printf("\nADMIN MENU\n");
 	choice = adminMenuList();
 		switch (choice) {
 		case 0:
@@ -139,6 +102,7 @@ void adminMenu() {
 			listApprovedEntries();
 			break;
 		case 9:
+			approveEntry();
 			break;
 		case 10:
 			addModule();
@@ -150,8 +114,9 @@ void adminMenu() {
 void staffMenu() {
 	int choice;
 	while(1){
-		printf("STAFF MENU\n");
-	choice = staffMenuList();
+		printf("\nSTAFF MENU\n");
+		fflush(stdin);
+	    choice = staffMenuList();
 		switch (choice) {
 		case 0:
 			displayMainMenu();
@@ -169,6 +134,10 @@ void staffMenu() {
 			workEntry();
 			break;
 		case 5:
+			listPendingEntryWithModuleName();
+			break;
+		case 6 :
+			listApprovedEntryWithModuleName();
 			break;
 		}
 	}
@@ -199,8 +168,8 @@ int staffMenuList(){
 	printf("2. Modules per Course(Sorted by name)\n");
 	printf("3. Modules Per Category(Sorted By Duration\n");
 	printf("4. Work Entry\n");
-	printf("5. List pending Entries\n");
-	printf("6. List approved entries\n");
+	printf("5. List pending Entries With Staff And Module\n");
+	printf("6. List approved entries With Staff And Module\n");
 	printf(" Enter Choice : ");
 	scanf("%d",&choice);
 	return choice;
@@ -242,10 +211,12 @@ void displayCourseList() {
 	fp = fopen("courses.txt", "r");
 	if (fp != NULL) {
 		char courseName[6];
-		printf("Course List: \n");
+		printf("===================");
+		printf("\nCourse List: \n");
 		while (fgets(courseName, 6, fp) != NULL)
 			printf("%s", courseName);
 		fclose(fp);
+		printf("===================");
 	} else
 		printf("Error In File Opening");
 }
@@ -290,8 +261,10 @@ void getStaffDetails() {
 	printf("Id : ");
 	scanf("%d", &staff.id);
 	printf("Name : ");
+	fflush(stdin);
 	scanf("%s", staff.name);
 	printf("Email : ");
+	fflush(stdin);
 	scanf("%s", staff.email);
 	printf("Mobile No. :");
 	scanf("%s", staff.mobile);
@@ -300,10 +273,12 @@ void getStaffDetails() {
 void displayModuleDetails() {
 	FILE *fp;
 	fp = fopen("module.db", "rb");
+	printf("===================\n");
 	if (fp != NULL) {
 		while (fread(&module, sizeof(module), 1, fp) != '\0')
 			printModuleDetails();
 		fclose(fp);
+		printf("===================");
 	}else
 		printf("Error In File Opening");
 }
@@ -318,18 +293,19 @@ void findModuleByNameAndCourse() {
 		scanf("%s", course);
 		printf("Enter Module Name (Can be Partial) : ");
 		scanf("%s", name);
+		printf("===================\n");
 		while (fread(&module, sizeof(module), 1, fp) != '\0') {
-			if (strncmp(module.name, name, 2) == 0
+			if (strncmp(module.name, name, 1) == 0
 					&& strcasecmp(module.course, course) == 0) {
-				printf("Module Found :\n");
 				printModuleDetails();
 				flag = 1;
-				break;
+				//break;
 			}
 		}
 		if (flag == 0)
 			printf("Module Not Found\n");
 		fclose(fp);
+		printf("===================");
 	}else
 		printf("Error In File Opening");
 }
@@ -359,6 +335,43 @@ void editModuleByID(){
 	}else
 		printf("Error In File Opening");
 
+}
+
+void changeStatus(struct Entry *ptr){
+	ptr->duration=entry.duration;
+	ptr->id=entry.id;
+	ptr->module_id=entry.module_id;
+	ptr->staff_id=entry.staff_id;
+	ptr->start_time=entry.start_time;
+	ptr->work_date=entry.work_date;
+	ptr->status=1;
+}
+
+void approveEntry() {
+	FILE *fp;
+	fp = fopen("entries.db", "rb+");
+	struct Entry entryCpy;
+	if (fp != NULL) {
+		int workId, flag = 0;
+		printf("Enter Work ID : ");
+		scanf("%d", &workId);
+		while (fread(&entry, sizeof(entry), 1, fp) != '\0') {
+			if (entry.id == workId) {
+				printf("Entry Found :\n");
+				changeStatus(&entryCpy);
+				fseek(fp, -sizeof(entryCpy), SEEK_CUR);
+				fwrite(&entryCpy, sizeof(entry), 1, fp);
+				flag = 1;
+				break;
+			}
+		}
+		if (flag == 0)
+			printf("Entry Not Found\n");
+		else
+			printf("Entry Approved Successfully");
+		fclose(fp);
+	} else
+		printf("Error In File Opening");
 }
 
 void deleteModuleById() {
@@ -396,16 +409,16 @@ typedef struct ModuleCat{
 	}MODULECAT;
 
 int cmpfunc(const void * s1, const void * s2) {
-	int l = *((MODULECAT *)s1)->name;
-	int r = *((MODULECAT *)s2)->name;
-	return (l - r);
+	MODULECAT *p1 = (MODULECAT*) s1, *p2 = (MODULECAT*) s2;
+	double diff = strcmp(p1->name, p2->name);
+	return diff;
 }
 
 void modulesPerCourse(){
 	char course[6];
-	printf("Enter Course Name (Complete) : ");
+	printf("\nEnter Course Name (Complete) : ");
 	scanf("%s", course);
-
+	printf("===================\n");
 	FILE *fp;
 	fp = fopen("module.db", "rb");
 	if (fp != NULL) {
@@ -435,27 +448,150 @@ void modulesPerCourse(){
 		qsort(moduleArr, len1, sizeof(MODULECAT), cmpfunc);
 
 		for (int i = 0; i < len; i++) {
-			printf("ID : %d\n", moduleArr[i].id);
-			printf("Name : %s\n", moduleArr[i].name);
+			printf("\nModule ID : %d\n", moduleArr[i].id);
+			printf("Module Name : %s\n", moduleArr[i].name);
 			printf("Course : %s\n", moduleArr[i].course);
 			printf("Duration : %d\n", moduleArr[i].duration);
 		}
+		printf("===================");
 	}else
 		printf("Error In File Opening");
 
 }
 
+void listPendingEntries() {
+	FILE *fp;
+	fp = fopen("entries.db", "rb");
+	int flag =0;
+	printf("===================\n");
+	if (fp != NULL) {
+		while(fread(&entry, sizeof(entry), 1, fp)!='\0'){
+			if(entry.status==0){
+				printWorkEntryDetails();
+				flag =1;
+			}
+		}
+		if(flag==0){
+			printf("No Pending Entries\n");
+		}
+		fclose(fp);
+		printf("===================");
+	} else
+		printf("Error In File Opening");
+}
+
+void listApprovedEntries() {
+	FILE *fp;
+	fp = fopen("entries.db", "rb");
+	int flag = 0;
+	printf("===================\n");
+	if (fp != NULL) {
+		while (fread(&entry, sizeof(entry), 1, fp) != '\0') {
+			if (entry.status == 1) {
+				printWorkEntryDetails();
+				flag = 1;
+			}
+		}
+		if (flag == 0) {
+			printf("No Pending Entries\n");
+		}
+		fclose(fp);
+		printf("===================");
+	} else
+		printf("Error In File Opening");
+}
+
+void printfStaff(int staff_id){
+	FILE *fp_staff;
+	fp_staff = fopen("staff.db", "rb");
+	if (fp_staff != NULL) {
+		while (fread(&staff, sizeof(staff), 1, fp_staff) != '\0') {
+			if (staff.id == staff_id) {
+				printf("Staff ID : %d\n", staff.id);
+				printf("Staff Name : %s\n", staff.name);
+			}
+		}
+
+	} else
+		printf("Error In File Opening");
+}
+
+void printfModule(int module_id) {
+	FILE *fp_module;
+	fp_module = fopen("module.db", "rb");
+	if (fp_module != NULL) {
+		while (fread(&module, sizeof(module), 1, fp_module) != '\0') {
+			if (module.id == module_id) {
+				printf("Module Name : %s\n", module.name);
+			}
+		}
+	} else
+		printf("Error In File Opening");
+}
+
+void listPendingEntryWithModuleName() {
+	int staff_id;
+	printf("\nEnter Staff Id : ");
+	scanf("%d",&staff_id);
+	FILE *fp_workEntry,*fp_module,*fp_staff;
+	int flag = 0;
+	fp_workEntry = fopen("entries.db", "rb");
+	printf("===================\n");
+	if (fp_workEntry != NULL) {
+		while (fread(&entry, sizeof(entry), 1, fp_workEntry) != '\0') {
+			if (entry.status == 0 && entry.staff_id==staff_id) {
+				printf("\nStatus : Pending\n");
+				printfStaff(entry.staff_id);
+				printfModule(entry.module_id);
+				flag = 1;
+			}
+		}
+		if (flag == 0) {
+			printf("No Pending Entries\n");
+		}
+		fclose(fp_workEntry);
+		printf("===================");
+	} else
+		printf("Error In File Opening");
+}
+
+void listApprovedEntryWithModuleName() {
+	int staff_id;
+	printf("\nEnter Staff Id : ");
+	scanf("%d", &staff_id);
+	FILE *fp_workEntry, *fp_module, *fp_staff;
+	int flag = 0;
+	fp_workEntry = fopen("entries.db", "rb");
+	printf("===================\n");
+	if (fp_workEntry != NULL) {
+		while (fread(&entry, sizeof(entry), 1, fp_workEntry) != '\0') {
+			if (entry.status == 1 && entry.staff_id==staff_id) {
+				printf("\nStatus : Approved\n");
+				printfStaff(entry.staff_id);
+				printfModule(entry.module_id);
+				flag = 1;
+			}
+		}
+		if (flag == 0) {
+			printf("Pending Entries\n");
+		}
+		fclose(fp_workEntry);
+		printf("===================");
+	} else
+		printf("Error In File Opening");
+}
+
 int cmpfunc1(const void * s1, const void * s2) {
-	int l = ((MODULECAT *)s1)->duration;
-	int r = ((MODULECAT *)s2)->duration;
-	return (l - r);
+	MODULECAT *p1 = (MODULECAT*) s1, *p2 = (MODULECAT*) s2;
+	int diff = p1->duration - p2->duration;
+	return diff;
 }
 
 void modulesPerCategory() {
 	char course[6];
 	printf("Enter Course Name (Complete) : ");
 	scanf("%s", course);
-
+	printf("===================\n");
 	FILE *fp;
 	fp = fopen("module.db", "rb");
 	if (fp != NULL) {
@@ -485,11 +621,12 @@ void modulesPerCategory() {
 		qsort(moduleArr, len1, sizeof(MODULECAT), cmpfunc1);
 
 		for (int i = 0; i < len; i++) {
-			printf("ID : %d\n", moduleArr[i].id);
-			printf("Name : %s\n", moduleArr[i].name);
+			printf("\nModule ID : %d\n", moduleArr[i].id);
+			printf("Module Name : %s\n", moduleArr[i].name);
 			printf("Course : %s\n", moduleArr[i].course);
 			printf("Duration : %d\n", moduleArr[i].duration);
 		}
+		printf("===================");
 	}else
 		printf("Error In File Opening");
 
@@ -516,8 +653,8 @@ void printfStaffDetails(){
 }
 
 void printModuleDetails() {
-	printf("ID : %d\n", module.id);
-	printf("Name : %s\n", module.name);
+	printf("\nModule ID : %d\n", module.id);
+	printf("Module Name : %s\n", module.name);
 	printf("Course : %s\n", module.course);
 	printf("Duration : %d\n", module.duration);
 }
@@ -549,74 +686,23 @@ void getWorkEntryDetails() {
 	scanf("%d", &entry.module_id);
 	printf("Duration : ");
     scanf("%d", &entry.duration);
-    printf("Date : In DD/MM/YYY format only");
+    printf("Date : In DD/MM/YYYY format only :");
     scanf("%d / %d / %d",&entry.work_date.day,&entry.work_date.month,&entry.work_date.year);
-    printf("Time : In HH-MM-SS format only");
-    scanf("%d / %d / %d",&entry.start_time.hours,&entry.start_time.mins,&entry.start_time.seconds);
-}
+	printf("Time : ");
+	printf("Hour : ");
+	scanf("%d", &entry.start_time.hours);
+	printf("Mins : ");
+	scanf("%d", &entry.start_time.mins);
+	printf("Secs : ");
+	scanf("%d", &entry.start_time.seconds);
+	fflush(stdin);
 
-void listPendingEntries() {
-	FILE *fp;
-	fp = fopen("entries.db", "rb");
-	int flag =0;
-	if (fp != NULL) {
-		while(fread(&entry, sizeof(entry), 1, fp)!='\0'){
-			if(entry.status==0){
-				printWorkEntryDetails();
-				flag =1;
-			}
-		}
-		if(flag==0){
-			printf("No Pending Entries\n");
-		}
-		fclose(fp);
-	} else
-		printf("Error In File Opening");
+    /*printf("Time : In HH-MM-SS format only");
+    scanf("%d / %d / %d",&entry.start_time.hours,&entry.start_time.mins,&entry.start_time.seconds);*/
 }
-
-void listApprovedEntries() {
-	FILE *fp;
-	fp = fopen("entries.db", "rb");
-	int flag = 0;
-	if (fp != NULL) {
-		while (fread(&entry, sizeof(entry), 1, fp) != '\0') {
-			if (entry.status == 1) {
-				printWorkEntryDetails();
-				flag = 1;
-			}
-		}
-		if (flag == 0) {
-			printf("No Pending Entries\n");
-		}
-		fclose(fp);
-	} else
-		printf("Error In File Opening");
-}
-
-/*void approveEntry(){
-	FILE *fp;
-	fp = fopen("entries.db", "ab+");
-	int flag = 0,id;
-	printf("Enter Entry ID : ");
-	scanf("%d",&id);
-	if (fp != NULL) {
-		while (fread(&entry, sizeof(entry), 1, fp) != '\0') {
-			if (entry.id == id) {
-				fseek(fp,-1, SEEK_CUR);
-				entry.status=1;
-				flag = 1;
-			}
-		}
-		if (flag == 0) {
-			printf("No Pending Entries\n");
-		}else
-			printf("Approved\n");
-		fclose(fp);
-	} else
-		printf("Error In File Opening");
-}*/
 
 void printWorkEntryDetails(){
+	printf("\nStatus : %d\n",entry.status);
 	printf("Id : %d\n",entry.id);
 	printf("Staff ID : %d\n",entry.staff_id);
 	printf("Module ID : %d\n",entry.module_id);
@@ -625,26 +711,8 @@ void printWorkEntryDetails(){
 	printf("Time : %d/%d/%d\n",entry.start_time.hours,entry.start_time.mins,entry.start_time.seconds);
 }
 
-/*void listPendingEntriesWithModuleName() {
-	FILE *fp,fp2;
-	fp = fopen("entries.db", "rb");
-	fp2 = fopen("module.db", "rb");
-	int flag = 0;
-	if (fp != NULL) {
-		while (fread(&entry, sizeof(entry), 1, fp) != '\0') {
-			if (entry.status == 0) {
-				printWorkEntryDetails();
-				while (fread(&module, sizeof(module), 1, fp2) != '\0'){
-					if(module.id==entry.module_id)
-						printf("Module Id : %d",module.id);
-				}
-				flag = 1;
-			}
-		}
-		if (flag == 0) {
-			printf("No Pending Entries\n");
-		}
-		fclose(fp);
-	} else
-		printf("Error In File Opening");
-}*/
+int main (void){
+	displayMyDetails();
+	displayMainMenu();
+	return 0;
+}
